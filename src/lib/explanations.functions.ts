@@ -1,12 +1,15 @@
 import { createServerFn } from "@tanstack/react-start";
+import type { AgeBucket } from "@/data/scenarios";
 
 type Input = {
   sender: string;
   message: string;
   verdict: "fake" | "safe";
   tricky?: boolean;
-  ageGroup: number;
+  ageGroups: AgeBucket[];
 };
+
+const VALID_BUCKETS: AgeBucket[] = ["5-7", "8-10", "11-14"];
 
 function validate(input: unknown): Input {
   const o = input as Record<string, unknown>;
@@ -15,18 +18,36 @@ function validate(input: unknown): Input {
   const message = String(o.message ?? "").trim().slice(0, 600);
   const verdict = o.verdict === "safe" ? "safe" : "fake";
   const tricky = Boolean(o.tricky);
-  const ageGroupNum = Math.round(Number(o.ageGroup));
-  const ageGroup = Math.max(5, Math.min(14, isNaN(ageGroupNum) ? 9 : ageGroupNum));
+  const raw = Array.isArray(o.ageGroups) ? o.ageGroups : [];
+  const ageGroups = raw.filter((b): b is AgeBucket =>
+    VALID_BUCKETS.includes(b as AgeBucket)
+  );
   if (!message) throw new Error("Message is required");
-  return { sender, message, verdict, tricky, ageGroup };
+  if (ageGroups.length === 0) throw new Error("Pick at least one age group");
+  return { sender, message, verdict, tricky, ageGroups };
 }
 
-function ageTone(age: number): string {
-  if (age <= 7)
-    return "Use very simple words a 6-year-old understands. Short sentences. No jargon like 'phishing', '2FA', or 'credentials'. Use ideas like 'asking for secrets', 'pretending to be someone', 'something feels weird'.";
-  if (age <= 10)
-    return "Use everyday words a 9-year-old understands. You can say 'scam' and 'fake', but avoid jargon like '2FA' or 'phishing'. Keep it concrete and friendly.";
-  return "Use clear words a 12-13 year old understands. You can say 'phishing', 'scam', 'two-factor', 'urgency tactic'. Keep it concrete and short.";
+function ageTone(buckets: AgeBucket[]): { label: string; guide: string } {
+  // Aim explanation at the youngest selected bucket so it stays accessible.
+  if (buckets.includes("5-7")) {
+    return {
+      label: "ages 5–7",
+      guide:
+        "Use very simple words a 6-year-old understands. Short sentences. No jargon like 'phishing', '2FA', or 'credentials'. Use ideas like 'asking for secrets', 'pretending to be someone', 'something feels weird'.",
+    };
+  }
+  if (buckets.includes("8-10")) {
+    return {
+      label: "ages 8–10",
+      guide:
+        "Use everyday words a 9-year-old understands. You can say 'scam' and 'fake', but avoid jargon like '2FA' or 'phishing'. Keep it concrete and friendly.",
+    };
+  }
+  return {
+    label: "ages 11–14",
+    guide:
+      "Use clear words a 12-13 year old understands. You can say 'phishing', 'scam', 'OTP', 'urgency tactic'. Keep it concrete and short.",
+  };
 }
 
 export const generateExplanation = createServerFn({ method: "POST" })
@@ -37,10 +58,11 @@ export const generateExplanation = createServerFn({ method: "POST" })
 
     const verdictLabel =
       data.verdict === "fake" ? "RED CARD (fake / scam / unsafe)" : "GREEN CARD (safe / legit)";
+    const tone = ageTone(data.ageGroups);
 
     const system = `You are a kind teacher explaining online safety to a child.
 Write ONE or TWO short sentences (max 35 words total) explaining WHY a message is ${verdictLabel}.
-${ageTone(data.ageGroup)}
+${tone.guide}
 Be warm and clear, not scary. No emojis. No quotes. No preamble like "This is".
 Just the explanation sentence(s).`;
 
@@ -48,7 +70,7 @@ Just the explanation sentence(s).`;
 Message: "${data.message}"
 Verdict: ${verdictLabel}${data.tricky ? "\nNote: This one is tricky — kids might guess wrong." : ""}
 
-Write the "Why?" explanation for kids aged ${data.ageGroup}.`;
+Write the "Why?" explanation for ${tone.label}.`;
 
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import type { GameMode, Phase, Player, SetupPayload, CustomScenario } from "@/lib/game-types";
+import type { GameMode, Phase, Player, SetupPayload, CustomScenario, AgeBucket } from "@/lib/game-types";
 import { scenarios } from "@/data/scenarios";
 import type { Scenario } from "@/data/scenarios";
 import { Bubbles } from "./Bubbles";
@@ -15,23 +15,29 @@ export function Game() {
   const [classScore, setClassScore] = useState(0);
   const [roundIndex, setRoundIndex] = useState(0);
   const [customScenarios, setCustomScenarios] = useState<CustomScenario[]>([]);
+  const [ageGroups, setAgeGroups] = useState<AgeBucket[]>([]);
 
   // per-round award state (not yet committed to scores)
   const [classGotIt, setClassGotIt] = useState(false);
   const [awardedIds, setAwardedIds] = useState<Set<string>>(new Set());
 
-  const allScenarios = useMemo<Scenario[]>(
-    () => [...customScenarios, ...scenarios],
-    [customScenarios]
-  );
+  const allScenarios = useMemo<Scenario[]>(() => {
+    const matches = (s: Scenario) =>
+      ageGroups.length === 0 || s.ageGroups.some((b) => ageGroups.includes(b));
+    return [
+      ...customScenarios.filter(matches),
+      ...scenarios.filter(matches),
+    ];
+  }, [customScenarios, ageGroups]);
   const totalRounds = allScenarios.length;
   const scenario = allScenarios[roundIndex];
-  const isLastRound = roundIndex === totalRounds - 1;
+  const isLastRound = roundIndex === totalRounds - 1 || totalRounds === 0;
 
   const handleStart = (payload: SetupPayload) => {
     setMode(payload.mode);
     setPlayers(payload.players);
     setCustomScenarios(payload.customScenarios);
+    setAgeGroups(payload.ageGroups);
     setClassScore(0);
     setRoundIndex(0);
     setClassGotIt(false);

@@ -1,4 +1,4 @@
-import type { Scenario } from "@/data/scenarios";
+import type { Scenario, AgeBucket } from "@/data/scenarios";
 
 export type GameMode = "class" | "teams" | "individuals";
 
@@ -10,14 +10,14 @@ export type Player = {
 
 export type Phase = "setup" | "question" | "reveal" | "end";
 
-export type AgeGroup = number; // 5-14
+export type { AgeBucket };
 
 export type CustomScenario = Scenario & { id: string; custom: true };
 
 export type SetupPayload = {
   mode: GameMode;
   players: Player[];
-  ageGroup: AgeGroup;
+  ageGroups: AgeBucket[];
   customScenarios: CustomScenario[];
 };
 
