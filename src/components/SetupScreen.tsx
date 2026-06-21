@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { GameMode, Player, CustomScenario, SetupPayload } from "@/lib/game-types";
+import type { GameMode, Player, CustomScenario, SetupPayload, AgeBucket } from "@/lib/game-types";
 import { DEFAULT_TEAM_NAMES } from "@/lib/game-types";
 import { AgeGroupPicker } from "./AgeGroupPicker";
 import { CustomQuestionEditor } from "./CustomQuestionEditor";
@@ -13,7 +13,7 @@ export function SetupScreen({ onStart }: Props) {
   const [teamCount, setTeamCount] = useState(2);
   const [teamNames, setTeamNames] = useState<string[]>(DEFAULT_TEAM_NAMES);
   const [namesText, setNamesText] = useState("");
-  const [ageGroup, setAgeGroup] = useState(9);
+  const [ageGroups, setAgeGroups] = useState<AgeBucket[]>(["8-10"]);
   const [customScenarios, setCustomScenarios] = useState<CustomScenario[]>([]);
 
   const individualNames = namesText
@@ -22,10 +22,11 @@ export function SetupScreen({ onStart }: Props) {
     .filter(Boolean);
 
   const canStart =
-    mode === "class" ||
-    (mode === "teams" &&
-      teamNames.slice(0, teamCount).every((n) => n.trim().length > 0)) ||
-    (mode === "individuals" && individualNames.length >= 1);
+    ageGroups.length > 0 &&
+    (mode === "class" ||
+      (mode === "teams" &&
+        teamNames.slice(0, teamCount).every((n) => n.trim().length > 0)) ||
+      (mode === "individuals" && individualNames.length >= 1));
 
   const handleStart = () => {
     if (!mode) return;
@@ -43,7 +44,7 @@ export function SetupScreen({ onStart }: Props) {
         score: 0,
       }));
     }
-    onStart({ mode, players, ageGroup, customScenarios });
+    onStart({ mode, players, ageGroups, customScenarios });
   };
 
   return (
