@@ -1,6 +1,7 @@
-import { useState } from "react";
-import type { GameMode, Phase, Player } from "@/lib/game-types";
+import { useMemo, useState } from "react";
+import type { GameMode, Phase, Player, SetupPayload, CustomScenario } from "@/lib/game-types";
 import { scenarios } from "@/data/scenarios";
+import type { Scenario } from "@/data/scenarios";
 import { Bubbles } from "./Bubbles";
 import { SetupScreen } from "./SetupScreen";
 import { RoundScreen } from "./RoundScreen";
@@ -13,18 +14,24 @@ export function Game() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [classScore, setClassScore] = useState(0);
   const [roundIndex, setRoundIndex] = useState(0);
+  const [customScenarios, setCustomScenarios] = useState<CustomScenario[]>([]);
 
   // per-round award state (not yet committed to scores)
   const [classGotIt, setClassGotIt] = useState(false);
   const [awardedIds, setAwardedIds] = useState<Set<string>>(new Set());
 
-  const totalRounds = scenarios.length;
-  const scenario = scenarios[roundIndex];
+  const allScenarios = useMemo<Scenario[]>(
+    () => [...customScenarios, ...scenarios],
+    [customScenarios]
+  );
+  const totalRounds = allScenarios.length;
+  const scenario = allScenarios[roundIndex];
   const isLastRound = roundIndex === totalRounds - 1;
 
-  const handleStart = (m: GameMode, p: Player[]) => {
-    setMode(m);
-    setPlayers(p);
+  const handleStart = (payload: SetupPayload) => {
+    setMode(payload.mode);
+    setPlayers(payload.players);
+    setCustomScenarios(payload.customScenarios);
     setClassScore(0);
     setRoundIndex(0);
     setClassGotIt(false);
@@ -68,6 +75,7 @@ export function Game() {
   const handlePlayAgain = () => {
     setPhase("setup");
     setPlayers([]);
+    setCustomScenarios([]);
     setClassScore(0);
     setRoundIndex(0);
     setClassGotIt(false);
