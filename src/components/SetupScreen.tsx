@@ -1,9 +1,11 @@
 import { useState } from "react";
-import type { GameMode, Player } from "@/lib/game-types";
+import type { GameMode, Player, CustomScenario, SetupPayload } from "@/lib/game-types";
 import { DEFAULT_TEAM_NAMES } from "@/lib/game-types";
+import { AgeGroupPicker } from "./AgeGroupPicker";
+import { CustomQuestionEditor } from "./CustomQuestionEditor";
 
 type Props = {
-  onStart: (mode: GameMode, players: Player[]) => void;
+  onStart: (payload: SetupPayload) => void;
 };
 
 export function SetupScreen({ onStart }: Props) {
@@ -11,6 +13,8 @@ export function SetupScreen({ onStart }: Props) {
   const [teamCount, setTeamCount] = useState(2);
   const [teamNames, setTeamNames] = useState<string[]>(DEFAULT_TEAM_NAMES);
   const [namesText, setNamesText] = useState("");
+  const [ageGroup, setAgeGroup] = useState(9);
+  const [customScenarios, setCustomScenarios] = useState<CustomScenario[]>([]);
 
   const individualNames = namesText
     .split(/[\n,]/)
@@ -39,7 +43,7 @@ export function SetupScreen({ onStart }: Props) {
         score: 0,
       }));
     }
-    onStart(mode, players);
+    onStart({ mode, players, ageGroup, customScenarios });
   };
 
   return (
@@ -147,6 +151,18 @@ export function SetupScreen({ onStart }: Props) {
           </div>
         </div>
       )}
+
+      <div className="mt-8">
+        <AgeGroupPicker value={ageGroup} onChange={setAgeGroup} />
+      </div>
+
+      <div className="mt-6">
+        <CustomQuestionEditor
+          ageGroup={ageGroup}
+          customScenarios={customScenarios}
+          onChange={setCustomScenarios}
+        />
+      </div>
 
       <p className="mt-8 text-center text-sm text-white/70 italic">
         💡 Tip: Let kids hold up their Red/Green cards and discuss out loud before you reveal!

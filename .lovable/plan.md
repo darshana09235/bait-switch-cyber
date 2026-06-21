@@ -1,109 +1,71 @@
-# The Bait & Switch — Build Plan
+## Goal
 
-A self-contained, single-page React app for a facilitator-led cyber safety workshop. No backend, no auth, no storage — all state lives in memory for the session.
+Add two features to The Bait & Switch:
+1. An **age group selector** (5–14) on the setup screen that tunes the difficulty/tone of explanations.
+2. A **"Add your own question"** flow where the facilitator types a message, marks it Red (fake) or Green (safe), and the app **auto-generates the "Why?" explanation** using AI — appropriate to the selected age group.
 
-## Visual direction
+## UX Flow
 
-- Ocean / "Phisherman" theme: deep navy→teal gradient background (#063A5E → #042A45)
-- Floating bubble particles drifting upward (pure CSS animation, low-cost)
-- Accent tokens: coral `#FF5A5F` (danger), seafoam `#1FC6B6` (safe), sandy yellow `#FFD23F` (highlight/CTA)
-- Rounded, high-contrast, kid-friendly. Generous spacing, large tap targets, short text.
-- 🎣🐟 emoji accents in headers; phone-mockup card for scenario messages (white card, faux status bar, circular avatar initial, sender name, bold message text)
+**Setup screen (additions, above "Start Game"):**
+- New section: **"Age group"** — a horizontal slider/segmented control from **5 to 14**, default 9. Shows selected age large (e.g. "Ages 9").
+- New section: **"Custom questions (optional)"** — a list of added questions + an "➕ Add a question" button that opens an inline composer:
+  - Sender field (e.g. "Unknown Number")
+  - Message textarea
+  - Two big buttons: **🚩 Red Card (fake)** / **🟢 Green Card (safe)**
+  - Optional "Tricky one" toggle
+  - **"✨ Generate explanation"** button → calls AI, fills a read-only "Why?" preview the facilitator can edit
+  - **Save** / **Cancel**
+- Saved custom questions appear as chips with edit/delete; they are **shuffled into the round list** in front of the built-ins (or interleaved — see below).
 
-All colors added as semantic tokens in `src/styles.css` (`--ocean-deep`, `--ocean-mid`, `--coral`, `--seafoam`, `--sand`) and wired through `@theme inline` so utilities like `bg-coral`, `text-seafoam` work.
+**During play:** no visual difference between built-in and custom questions.
 
-## App structure
+## AI Generation
 
-Single route at `/` (replace the placeholder `src/routes/index.tsx`). One stateful container drives three screen phases: `setup` → `round` (with `question` / `reveal` sub-states) → `end`.
+- Use **Lovable AI Gateway** via a TanStack `createServerFn` (`src/lib/explanations.functions.ts`).
+- Input: `{ sender, message, verdict: 'fake' | 'safe', tricky, ageGroup }`.
+- Output: a single 1–2 sentence "why" string, written in the voice of a kind teacher, vocabulary tuned to the age (younger = shorter words, more concrete; older = can reference concepts like 2FA, phishing, urgency tactics).
+- Model: `google/gemini-2.5-flash` (fast, cheap, good for short structured text). No streaming needed — single short response.
+- Uses `generateText` from `ai` + the gateway provider. Returns `{ why: string }`.
+- Frontend shows a spinner on the **"✨ Generate explanation"** button, then fills the textarea. Facilitator can re-generate or hand-edit.
 
-```
-src/
-  routes/
-    index.tsx              # route + head metadata, renders <Game />
-  components/
-    Game.tsx               # top-level state machine
-    SetupScreen.tsx        # mode picker + team/individual name entry
-    RoundScreen.tsx        # round counter, scoreboard, phone card, Reveal button
-    RevealScreen.tsx       # full-screen red/green verdict + scoring controls
-    EndScreen.tsx          # modal: final score or ranked leaderboard
-    PhoneCard.tsx          # phone-mockup message card
-    Scoreboard.tsx         # class score OR team/individual list w/ 👑 leader
-    Bubbles.tsx            # CSS background bubble particles
-  data/
-    scenarios.ts           # the 16 scenarios, in order
-  lib/
-    game-types.ts          # GameMode, Player, Scenario types
-```
+This requires **Lovable Cloud** to be enabled (for the AI Gateway key). Plan will enable it as the first build step.
 
-## Game state (in-memory only)
+## Data Model Changes
 
-```ts
-type GameMode = 'class' | 'teams' | 'individuals';
-type Player = { id: string; name: string; score: number };
-type Phase = 'setup' | 'question' | 'reveal' | 'end';
+`src/lib/game-types.ts`:
+- Add `AgeGroup = number` (5–14).
+- Extend `Scenario` import or define `CustomScenario` = same shape as `Scenario` + `id: string`, `custom: true`.
 
-// state: mode, players[], classScore, roundIndex, phase
-```
+`Game.tsx` state additions:
+- `ageGroup: number` (default 9)
+- `customScenarios: Scenario[]`
+- Final round list = `[...customScenarios, ...scenarios]` (customs first so facilitator sees their own content early), or shuffled — **defaulting to "customs first, then built-ins in order"** for predictability. Total rounds derived from the combined array.
 
-Scoring rules:
-- `class` mode: one score, toggle button "✅ Class got it right (+1)" — tapping toggles between 0 and 1 for that round
-- `teams` / `individuals`: one toggle button per player; multi-select allowed; tap again undoes
-- Round-level award state is held separately and only committed when "Next Round" is tapped (or simply tracked per round so undo always works cleanly)
+`SetupScreen` props grow to pass back `{ mode, players, ageGroup, customScenarios }`.
 
-No timer anywhere. Setup screen shows a hint: "Let kids discuss out loud before you reveal."
+## Files to Change / Create
 
-## Screens
+**Create:**
+- `src/lib/explanations.functions.ts` — `generateExplanation` server function (AI call).
+- `src/components/AgeGroupPicker.tsx` — segmented 5–14 selector.
+- `src/components/CustomQuestionEditor.tsx` — inline add/edit composer with the "Generate" button.
 
-**SetupScreen**
-- Three large mode cards (Whole Class / Team Battle / Individual Kids)
-- Team Battle: number stepper 2–5, editable name inputs prefilled with playful defaults (Cyber Sharks, Firewall Foxes, Code Crackers, Net Ninjas, Data Dragons)
-- Individual Kids: textarea, split on commas/newlines, trims empties
-- "🚀 Start Game" disabled until mode chosen and (if applicable) at least 2 teams or 1 individual name
+**Edit:**
+- `src/lib/game-types.ts` — add `AgeGroup`, extend setup payload type.
+- `src/components/SetupScreen.tsx` — mount the two new sections; pass new fields up.
+- `src/components/Game.tsx` — store `ageGroup` + `customScenarios`; combine with built-in scenarios for the round list.
 
-**RoundScreen**
-- Header: "Round X of 16" + Scoreboard strip (👑 next to current leader; ties = crown on all tied leaders)
-- PhoneCard with sender + message
-- Single big CTA: "🔍 Reveal the Answer"
+**Enable:** Lovable Cloud (required for AI Gateway).
 
-**RevealScreen (full-screen)**
-- Solid red or green gradient fills the viewport with a quick fade-in (~200ms)
-- Big verdict text: "🚩 RED CARD!" or "🟢 GREEN CARD!"
-- Translucent rounded card quoting the original message in italics
-- "Why" explanation in calm, teacher-like tone
-- "Tricky one!" badge on flagged scenarios (the ones designed to make kids pause — e.g. Roblox trade, Online Gaming Buddy, App Store update, GameZone hacked channel, Mom new number)
-- Scoring controls per mode (see above)
-- "Next Round ➜" button (becomes "See Results 🏆" on the last round)
+No changes to RoundScreen / RevealScreen / EndScreen — custom scenarios reuse the same shape, so they render unchanged.
 
-**EndScreen** (modal overlay)
-- Class mode: "🎉 Great Job, Cyber Defenders!" + score / 16
-- Teams/Individuals: ranked list with 🥇🥈🥉 medals, winner banner "🏆 [Name] Wins!" (handle ties by sharing the medal)
-- "Play Again" → resets scores and returns to Setup (mode/names re-chooseable)
+## Out of Scope
 
-## Content
+- Persisting custom questions across reloads (in-memory only, matches existing app).
+- Editing built-in scenarios.
+- Re-generating "why" for built-in scenarios per age group (built-in `why` text stays as authored; only custom questions use AI).
+- Translations / non-English output.
 
-All 16 scenarios from the prompt, in the given order, stored verbatim in `src/data/scenarios.ts` as `{ sender, message, verdict: 'fake' | 'safe', why, tricky?: boolean }`. The "tricky" flag is set on the scenarios designed to make kids pause (Family birthday, App Store update, Classmate Google Doc, Roblox same-time trade, School Portal login, Online Gaming Buddy — i.e. SAFE ones that pattern-match to "suspicious", plus Mom-new-number which looks safe but isn't).
+## Open Question
 
-## Responsiveness & projector readability
-
-- Fluid type scale using `clamp()` so headings stay huge on TVs/projectors and readable on tablets
-- Layout uses flex/grid with a max-width container; everything centers
-- Tap targets ≥ 56px; reveal verdict text uses `clamp(4rem, 12vw, 10rem)`
-
-## Animations
-
-- Bubble particles: 8–12 absolutely-positioned divs with staggered `animation-delay` rising via `@keyframes`
-- Reveal transition: simple opacity + scale fade-in on the full-screen color layer (~200ms). No slow transitions.
-
-## Tech notes
-
-- Tailwind v4 tokens in `src/styles.css` only — no `tailwind.config.js`
-- No new dependencies needed; uses existing React + TanStack Start setup
-- Pure client component (`'use client'` not needed in TanStack Start) — state via `useState`/`useReducer`
-- `head()` in `index.tsx` updated: title "The Bait & Switch — Cyber Safety Workshop", matching description and OG tags
-
-## Out of scope
-
-- No login, no backend, no persistence (refresh = reset, by design)
-- No per-student device input
-- No timer
-- No external APIs, no analytics
+For built-in scenarios, the existing `why` text is one fixed sentence. Do you also want those rewritten by AI to match the selected age group, or keep built-ins fixed and only auto-generate for custom questions? **Default in this plan: built-ins stay fixed, AI only powers custom questions** (faster, no cost per round, predictable classroom content).
