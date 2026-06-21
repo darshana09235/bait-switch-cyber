@@ -1,15 +1,15 @@
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import type { CustomScenario } from "@/lib/game-types";
+import type { CustomScenario, AgeBucket } from "@/lib/game-types";
 import { generateExplanation } from "@/lib/explanations.functions";
 
 type Props = {
-  ageGroup: number;
+  ageGroups: AgeBucket[];
   customScenarios: CustomScenario[];
   onChange: (next: CustomScenario[]) => void;
 };
 
-export function CustomQuestionEditor({ ageGroup, customScenarios, onChange }: Props) {
+export function CustomQuestionEditor({ ageGroups, customScenarios, onChange }: Props) {
   const [open, setOpen] = useState(false);
   const [sender, setSender] = useState("");
   const [message, setMessage] = useState("");
@@ -31,7 +31,8 @@ export function CustomQuestionEditor({ ageGroup, customScenarios, onChange }: Pr
     setOpen(false);
   };
 
-  const canGenerate = message.trim().length > 0 && verdict !== null && !loading;
+  const hasAge = ageGroups.length > 0;
+  const canGenerate = message.trim().length > 0 && verdict !== null && hasAge && !loading;
   const canSave = canGenerate && why.trim().length > 0;
 
   const handleGenerate = async () => {
@@ -40,7 +41,7 @@ export function CustomQuestionEditor({ ageGroup, customScenarios, onChange }: Pr
     setError(null);
     try {
       const { why: generated } = await generate({
-        data: { sender, message, verdict, tricky, ageGroup },
+        data: { sender, message, verdict, tricky, ageGroups },
       });
       setWhy(generated);
     } catch (e) {
@@ -60,6 +61,7 @@ export function CustomQuestionEditor({ ageGroup, customScenarios, onChange }: Pr
       verdict,
       why: why.trim(),
       tricky,
+      ageGroups: [...ageGroups],
     };
     onChange([...customScenarios, next]);
     reset();
@@ -75,18 +77,25 @@ export function CustomQuestionEditor({ ageGroup, customScenarios, onChange }: Pr
         <div>
           <div className="font-bold text-white">Your own questions (optional)</div>
           <div className="text-xs text-white/60">
-            AI writes the "Why?" for the age you picked above.
+            AI writes the "Why?" tuned to the youngest age group you picked.
           </div>
         </div>
         {!open && (
           <button
             onClick={() => setOpen(true)}
-            className="rounded-full bg-sand px-5 py-2 text-sm font-extrabold text-slate-900 shadow-lg hover:scale-105 transition-transform"
+            disabled={!hasAge}
+            className="rounded-full bg-sand px-5 py-2 text-sm font-extrabold text-slate-900 shadow-lg hover:scale-105 transition-transform disabled:opacity-40 disabled:cursor-not-allowed"
           >
             ➕ Add
           </button>
         )}
       </div>
+
+      {!hasAge && (
+        <div className="rounded-2xl bg-white/10 px-4 py-2 text-sm text-white/80">
+          Pick an age group first to add custom questions.
+        </div>
+      )}
 
       {customScenarios.length > 0 && (
         <div className="mb-3 flex flex-wrap gap-2">
@@ -111,7 +120,7 @@ export function CustomQuestionEditor({ ageGroup, customScenarios, onChange }: Pr
         </div>
       )}
 
-      {open && (
+      {open && hasAge && (
         <div className="mt-4 space-y-3 rounded-2xl bg-white/5 p-4 ring-1 ring-white/10">
           <input
             value={sender}
