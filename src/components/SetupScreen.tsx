@@ -154,12 +154,12 @@ export function SetupScreen({ onStart }: Props) {
       )}
 
       <div className="mt-8">
-        <AgeGroupPicker value={ageGroup} onChange={setAgeGroup} />
+        <AgeGroupPicker value={ageGroups} onChange={setAgeGroups} />
       </div>
 
       <div className="mt-6">
         <CustomQuestionEditor
-          ageGroup={ageGroup}
+          ageGroups={ageGroups}
           customScenarios={customScenarios}
           onChange={setCustomScenarios}
         />
