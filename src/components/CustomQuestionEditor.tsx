@@ -7,9 +7,17 @@ type Props = {
   ageGroups: AgeBucket[];
   customScenarios: CustomScenario[];
   onChange: (next: CustomScenario[]) => void;
+  editing: CustomScenario | null;
+  onCancelEdit: () => void;
 };
 
-export function CustomQuestionEditor({ ageGroups, customScenarios, onChange }: Props) {
+export function CustomQuestionEditor({
+  ageGroups,
+  customScenarios,
+  onChange,
+  editing,
+  onCancelEdit,
+}: Props) {
   const [open, setOpen] = useState(false);
   const [sender, setSender] = useState("");
   const [message, setMessage] = useState("");
@@ -18,8 +26,21 @@ export function CustomQuestionEditor({ ageGroups, customScenarios, onChange }: P
   const [why, setWhy] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const generate = useServerFn(generateExplanation);
+
+  // sync from `editing` prop
+  if (editing && editing.id !== editingId) {
+    setEditingId(editing.id);
+    setSender(editing.sender);
+    setMessage(editing.message);
+    setVerdict(editing.verdict);
+    setTricky(Boolean(editing.tricky));
+    setWhy(editing.why);
+    setError(null);
+    setOpen(true);
+  }
 
   const reset = () => {
     setSender("");
@@ -29,6 +50,8 @@ export function CustomQuestionEditor({ ageGroups, customScenarios, onChange }: P
     setWhy("");
     setError(null);
     setOpen(false);
+    setEditingId(null);
+    onCancelEdit();
   };
 
   const hasAge = ageGroups.length > 0;
@@ -53,8 +76,9 @@ export function CustomQuestionEditor({ ageGroups, customScenarios, onChange }: P
 
   const handleSave = () => {
     if (!canSave || !verdict) return;
+    const id = editingId ?? `c-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     const next: CustomScenario = {
-      id: `c-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      id,
       custom: true,
       sender: sender.trim() || "Unknown",
       message: message.trim(),
@@ -63,19 +87,21 @@ export function CustomQuestionEditor({ ageGroups, customScenarios, onChange }: P
       tricky,
       ageGroups: [...ageGroups],
     };
-    onChange([...customScenarios, next]);
+    if (editingId) {
+      onChange(customScenarios.map((c) => (c.id === editingId ? next : c)));
+    } else {
+      onChange([...customScenarios, next]);
+    }
     reset();
-  };
-
-  const handleDelete = (id: string) => {
-    onChange(customScenarios.filter((c) => c.id !== id));
   };
 
   return (
     <div className="rounded-3xl bg-white/10 p-6 backdrop-blur">
       <div className="mb-3 flex items-center justify-between gap-4">
         <div>
-          <div className="font-bold text-white">Your own questions (optional)</div>
+          <div className="font-bold text-white">
+            {editingId ? "Edit your question" : "Your own questions (optional)"}
+          </div>
           <div className="text-xs text-white/60">
             AI writes the "Why?" tuned to the youngest age group you picked.
           </div>
@@ -94,29 +120,6 @@ export function CustomQuestionEditor({ ageGroups, customScenarios, onChange }: P
       {!hasAge && (
         <div className="rounded-2xl bg-white/10 px-4 py-2 text-sm text-white/80">
           Pick an age group first to add custom questions.
-        </div>
-      )}
-
-      {customScenarios.length > 0 && (
-        <div className="mb-3 flex flex-wrap gap-2">
-          {customScenarios.map((c) => (
-            <div
-              key={c.id}
-              className="flex items-center gap-2 rounded-2xl bg-white/15 px-3 py-2 text-sm"
-            >
-              <span>{c.verdict === "fake" ? "🚩" : "🟢"}</span>
-              <span className="max-w-[200px] truncate font-semibold text-white">
-                {c.message}
-              </span>
-              <button
-                onClick={() => handleDelete(c.id)}
-                className="ml-1 rounded-full bg-white/20 h-6 w-6 text-xs font-bold text-white hover:bg-rose-500"
-                aria-label="Delete"
-              >
-                ✕
-              </button>
-            </div>
-          ))}
         </div>
       )}
 
@@ -207,7 +210,7 @@ export function CustomQuestionEditor({ ageGroups, customScenarios, onChange }: P
               disabled={!canSave}
               className="rounded-full bg-sand px-6 py-2 font-extrabold text-slate-900 shadow-lg disabled:opacity-40 disabled:cursor-not-allowed hover:scale-105 transition-transform"
             >
-              Save question
+              {editingId ? "Save changes" : "Save question"}
             </button>
           </div>
         </div>
