@@ -1,6 +1,7 @@
 export type AgeBucket = "5-7" | "8-10" | "11-14";
 
 export type Scenario = {
+  id: string;
   sender: string;
   message: string;
   verdict: "fake" | "safe";
@@ -16,8 +17,9 @@ export const AGE_BUCKETS: { id: AgeBucket; label: string; emoji: string; desc: s
 ];
 
 export const scenarios: Scenario[] = [
-  // ============ 5–7 (very simple, concrete, in-person / kid apps) ============
+  // ============ 5–7 ============
   {
+    id: "b-yt-kids-button",
     sender: "YouTube Kids video",
     message:
       "A cartoon character on screen says: 'Tap the flashing red button to get a free toy unicorn!'",
@@ -26,6 +28,7 @@ export const scenarios: Scenario[] = [
     ageGroups: ["5-7"],
   },
   {
+    id: "b-grandma-call",
     sender: "Grandma (video call)",
     message: "Grandma video-calls you on Mom's phone to say good night.",
     verdict: "safe",
@@ -33,6 +36,7 @@ export const scenarios: Scenario[] = [
     ageGroups: ["5-7", "8-10"],
   },
   {
+    id: "b-colouring-prize",
     sender: "Game on the tablet",
     message:
       "A loud pop-up in your colouring app says: 'YOU WIN! Type Mommy's phone number to get your prize! 🎁'",
@@ -41,6 +45,7 @@ export const scenarios: Scenario[] = [
     ageGroups: ["5-7", "8-10"],
   },
   {
+    id: "b-stranger-school",
     sender: "Stranger online",
     message:
       "Someone you don't know in a kids' game asks: 'What school do you go to? Where do you live?'",
@@ -49,6 +54,7 @@ export const scenarios: Scenario[] = [
     ageGroups: ["5-7", "8-10"],
   },
   {
+    id: "b-parent-drawing-app",
     sender: "Mom or Dad",
     message: "A parent sits next to you and opens your favourite drawing app for you.",
     verdict: "safe",
@@ -56,6 +62,7 @@ export const scenarios: Scenario[] = [
     ageGroups: ["5-7"],
   },
   {
+    id: "b-virus-popup",
     sender: "Pop-up while playing",
     message:
       "A new window pops up: 'Your tablet has a virus! Tap here NOW to fix it!! ⚠️'",
@@ -64,8 +71,9 @@ export const scenarios: Scenario[] = [
     ageGroups: ["5-7", "8-10", "11-14"],
   },
 
-  // ============ 8–10 (Roblox / WhatsApp / school portal / YouTube) ============
+  // ============ 8–10 ============
   {
+    id: "b-gamezone-ipad",
     sender: "GameZone Official (YouTube)",
     message:
       "A channel you already subscribe to posts a video titled '🎁 You Won an iPad! Click to Claim Now!'",
@@ -75,6 +83,7 @@ export const scenarios: Scenario[] = [
     ageGroups: ["8-10", "11-14"],
   },
   {
+    id: "b-cousin-birthday",
     sender: "Family WhatsApp group",
     message: "Your cousin posts '🎂 It's my birthday today!' in the family group.",
     verdict: "safe",
@@ -82,6 +91,7 @@ export const scenarios: Scenario[] = [
     ageGroups: ["8-10", "11-14"],
   },
   {
+    id: "b-roblox-trade",
     sender: "Roblox trade",
     message:
       "Another player offers to trade you a virtual hat for your virtual sword — both items swap at the same time inside the game's trade window.",
@@ -91,6 +101,7 @@ export const scenarios: Scenario[] = [
     ageGroups: ["8-10", "11-14"],
   },
   {
+    id: "b-classmate-doc",
     sender: "Classmate",
     message:
       "A classmate from your school group shares a Google Doc link for your shared science project.",
@@ -100,6 +111,7 @@ export const scenarios: Scenario[] = [
     ageGroups: ["8-10", "11-14"],
   },
   {
+    id: "b-mom-new-number",
     sender: "Mom (new number?)",
     message:
       "'My phone broke, this is my new number! Quick, send me the WiFi password, I'm in a hurry!'",
@@ -109,6 +121,7 @@ export const scenarios: Scenario[] = [
     ageGroups: ["8-10", "11-14"],
   },
   {
+    id: "b-appstore-update",
     sender: "App Store / Play Store",
     message: "Your phone's own app store shows an update is ready for a game you already have.",
     verdict: "safe",
@@ -117,6 +130,7 @@ export const scenarios: Scenario[] = [
     ageGroups: ["8-10", "11-14"],
   },
   {
+    id: "b-school-portal",
     sender: "School portal",
     message: "You log into your school's website with your usual student ID to check homework.",
     verdict: "safe",
@@ -125,6 +139,7 @@ export const scenarios: Scenario[] = [
     ageGroups: ["8-10", "11-14"],
   },
   {
+    id: "b-free-robux",
     sender: "Free Robux website",
     message:
       "A site says 'Get 10,000 FREE Robux! Just type your Roblox username and password to start.'",
@@ -133,6 +148,7 @@ export const scenarios: Scenario[] = [
     ageGroups: ["8-10", "11-14"],
   },
   {
+    id: "b-game-100th-winner",
     sender: "Pop-up inside a game",
     message:
       "A flashy pop-up appears inside your game: 'You're our 100th winner today! Enter your gamer name and email to claim a free skin!'",
@@ -141,6 +157,7 @@ export const scenarios: Scenario[] = [
     ageGroups: ["8-10", "11-14"],
   },
   {
+    id: "b-secret-videocall",
     sender: "New online friend",
     message:
       "Someone you just met in a game asks to video-call you privately, just the two of you, without telling your parents.",
@@ -149,8 +166,9 @@ export const scenarios: Scenario[] = [
     ageGroups: ["8-10", "11-14"],
   },
 
-  // ============ 11–14 (Instagram / Discord / OTP / phishing / gift cards) ============
+  // ============ 11–14 ============
   {
+    id: "b-insta-ambassador",
     sender: "Instagram DM from a verified-looking page",
     message:
       "'Hey! You've been selected as a brand ambassador 💖 DM us your email and address to send your free PR box.'",
@@ -159,6 +177,7 @@ export const scenarios: Scenario[] = [
     ageGroups: ["11-14"],
   },
   {
+    id: "b-bank-sms",
     sender: "Bank SMS",
     message:
       "'Your account will be BLOCKED in 2 hours. Verify here: bit.ly/sbi-verify-now'",
@@ -167,6 +186,7 @@ export const scenarios: Scenario[] = [
     ageGroups: ["11-14"],
   },
   {
+    id: "b-discord-otp",
     sender: "Friend on Discord",
     message:
       "'Bro send me the OTP you just got, I tried logging into my account on your phone by mistake 🙏'",
@@ -175,6 +195,7 @@ export const scenarios: Scenario[] = [
     ageGroups: ["11-14"],
   },
   {
+    id: "b-yt-giftcard",
     sender: "Verified-looking YouTuber",
     message:
       "'I'm doing a giveaway! Just buy a ₹500 gift card and send me the code to enter!'",
@@ -183,6 +204,7 @@ export const scenarios: Scenario[] = [
     ageGroups: ["11-14"],
   },
   {
+    id: "b-teacher-gmail",
     sender: "Teacher (personal Gmail)",
     message:
       "A message from your 'teacher' sent to your personal email asks you to resend your test answers because they 'lost the file.'",
@@ -191,6 +213,7 @@ export const scenarios: Scenario[] = [
     ageGroups: ["11-14"],
   },
   {
+    id: "b-bestfriend-rec",
     sender: "Best friend (in person)",
     message: "Your best friend tells you face-to-face: 'You should check out this cool Minecraft channel!'",
     verdict: "safe",
@@ -198,6 +221,7 @@ export const scenarios: Scenario[] = [
     ageGroups: ["8-10", "11-14"],
   },
   {
+    id: "b-subscribe-or-deleted",
     sender: "Random Video comment",
     message: "'Subscribe RIGHT NOW or this channel gets DELETED forever!! ⚠️⚠️'",
     verdict: "fake",
@@ -205,6 +229,7 @@ export const scenarios: Scenario[] = [
     ageGroups: ["8-10", "11-14"],
   },
   {
+    id: "b-gaming-buddy-supervised",
     sender: "Online gaming buddy",
     message:
       "A friend you've played with for months — who has video-called with your parent present — asks to chat on the school-supervised messaging app.",
@@ -214,6 +239,7 @@ export const scenarios: Scenario[] = [
     ageGroups: ["11-14"],
   },
   {
+    id: "b-cute-follower-selfie",
     sender: "Cute new follower",
     message:
       "Someone your age you've never met DMs: 'You're so pretty 😍 send me a selfie, just between us, don't tell anyone.'",
@@ -222,6 +248,7 @@ export const scenarios: Scenario[] = [
     ageGroups: ["11-14"],
   },
   {
+    id: "b-school-website-hw",
     sender: "School website",
     message: "Your school posts this week's homework on its official website, same as every week.",
     verdict: "safe",
