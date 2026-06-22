@@ -16,6 +16,7 @@ export function Game() {
   const [roundIndex, setRoundIndex] = useState(0);
   const [customScenarios, setCustomScenarios] = useState<CustomScenario[]>([]);
   const [ageGroups, setAgeGroups] = useState<AgeBucket[]>([]);
+  const [deletedBuiltInIds, setDeletedBuiltInIds] = useState<string[]>([]);
 
   // per-round award state (not yet committed to scores)
   const [classGotIt, setClassGotIt] = useState(false);
@@ -26,9 +27,9 @@ export function Game() {
       ageGroups.length === 0 || s.ageGroups.some((b) => ageGroups.includes(b));
     return [
       ...customScenarios.filter(matches),
-      ...scenarios.filter(matches),
+      ...scenarios.filter((s) => matches(s) && !deletedBuiltInIds.includes(s.id)),
     ];
-  }, [customScenarios, ageGroups]);
+  }, [customScenarios, ageGroups, deletedBuiltInIds]);
   const totalRounds = allScenarios.length;
   const scenario = allScenarios[roundIndex];
   const isLastRound = roundIndex === totalRounds - 1 || totalRounds === 0;
@@ -38,6 +39,7 @@ export function Game() {
     setPlayers(payload.players);
     setCustomScenarios(payload.customScenarios);
     setAgeGroups(payload.ageGroups);
+    setDeletedBuiltInIds(payload.deletedBuiltInIds);
     setClassScore(0);
     setRoundIndex(0);
     setClassGotIt(false);

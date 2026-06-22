@@ -1,71 +1,62 @@
 ## Goal
 
-Add two features to The Bait & Switch:
-1. An **age group selector** (5–14) on the setup screen that tunes the difficulty/tone of explanations.
-2. A **"Add your own question"** flow where the facilitator types a message, marks it Red (fake) or Green (safe), and the app **auto-generates the "Why?" explanation** using AI — appropriate to the selected age group.
+Make custom questions persist across refreshes, and let the facilitator permanently delete any question (custom or built-in) from the setup screen.
 
-## UX Flow
+## 1. Persist setup state in localStorage
 
-**Setup screen (additions, above "Start Game"):**
-- New section: **"Age group"** — a horizontal slider/segmented control from **5 to 14**, default 9. Shows selected age large (e.g. "Ages 9").
-- New section: **"Custom questions (optional)"** — a list of added questions + an "➕ Add a question" button that opens an inline composer:
-  - Sender field (e.g. "Unknown Number")
-  - Message textarea
-  - Two big buttons: **🚩 Red Card (fake)** / **🟢 Green Card (safe)**
-  - Optional "Tricky one" toggle
-  - **"✨ Generate explanation"** button → calls AI, fills a read-only "Why?" preview the facilitator can edit
-  - **Save** / **Cancel**
-- Saved custom questions appear as chips with edit/delete; they are **shuffled into the round list** in front of the built-ins (or interleaved — see below).
+Add a tiny `useLocalStorage` hook (`src/hooks/use-local-storage.ts`) — SSR-safe (reads inside `useEffect` on mount, no access during render on the server).
 
-**During play:** no visual difference between built-in and custom questions.
+In `SetupScreen.tsx`, back these with localStorage under keys:
+- `bs:customScenarios` → `CustomScenario[]`
+- `bs:deletedBuiltInIds` → `string[]` (see section 2)
+- `bs:ageGroups` → `AgeBucket[]`
 
-## AI Generation
+Effect: adding a custom question, deleting a built-in, or changing age group survives refresh and "Play Again".
 
-- Use **Lovable AI Gateway** via a TanStack `createServerFn` (`src/lib/explanations.functions.ts`).
-- Input: `{ sender, message, verdict: 'fake' | 'safe', tricky, ageGroup }`.
-- Output: a single 1–2 sentence "why" string, written in the voice of a kind teacher, vocabulary tuned to the age (younger = shorter words, more concrete; older = can reference concepts like 2FA, phishing, urgency tactics).
-- Model: `google/gemini-2.5-flash` (fast, cheap, good for short structured text). No streaming needed — single short response.
-- Uses `generateText` from `ai` + the gateway provider. Returns `{ why: string }`.
-- Frontend shows a spinner on the **"✨ Generate explanation"** button, then fills the textarea. Facilitator can re-generate or hand-edit.
+## 2. Hard-delete built-in questions
 
-This requires **Lovable Cloud** to be enabled (for the AI Gateway key). Plan will enable it as the first build step.
+Built-ins in `src/data/scenarios.ts` don't currently have stable IDs. Steps:
 
-## Data Model Changes
+- Add a required `id: string` to every built-in scenario (e.g. `"b-roblox-trade"`, `"b-otp-share"`). Stable, human-readable, won't change between sessions.
+- Update the `Scenario` type so `id` is required.
+- "Hard delete" against a static code file isn't actually possible from the browser — we can't rewrite `scenarios.ts` at runtime. So the user-visible behavior is permanent removal *for this browser*: the ID goes into `bs:deletedBuiltInIds` in localStorage and the scenario is filtered out everywhere, forever, on that device. (Calling it "hard delete from the code" would require a server function that rewrites the file and a redeploy — out of scope for a session-only classroom tool. We'll label the button "Delete forever" and explain it's per-device in a small helper line.)
 
-`src/lib/game-types.ts`:
-- Add `AgeGroup = number` (5–14).
-- Extend `Scenario` import or define `CustomScenario` = same shape as `Scenario` + `id: string`, `custom: true`.
+If you do want true source-file deletion later, that becomes a separate feature (server function + redeploy). Flag this if you want me to add it instead.
 
-`Game.tsx` state additions:
-- `ageGroup: number` (default 9)
-- `customScenarios: Scenario[]`
-- Final round list = `[...customScenarios, ...scenarios]` (customs first so facilitator sees their own content early), or shuffled — **defaulting to "customs first, then built-ins in order"** for predictability. Total rounds derived from the combined array.
+## 3. New "Question library" panel on the setup screen
 
-`SetupScreen` props grow to pass back `{ mode, players, ageGroup, customScenarios }`.
+Replace the current chip strip in `CustomQuestionEditor` with a unified list shown below the age picker:
 
-## Files to Change / Create
+```text
+Questions for ages 8–10        [ 14 active · 2 hidden ]  [Restore hidden]
+─────────────────────────────────────────────
+🚩  "Click here to claim..."      Custom    [✏️] [🗑]
+🟢  "Mom: pick up at 4"            Built-in  [🗑]
+🚩  "Your Roblox account..."       Built-in  [🗑]
+...
+```
 
-**Create:**
-- `src/lib/explanations.functions.ts` — `generateExplanation` server function (AI call).
-- `src/components/AgeGroupPicker.tsx` — segmented 5–14 selector.
-- `src/components/CustomQuestionEditor.tsx` — inline add/edit composer with the "Generate" button.
+- Filters by currently selected age groups (matches `Game.tsx` logic).
+- Each row: verdict pill, sender + message preview, source tag, delete button. Custom rows also get an edit button (opens the existing editor pre-filled).
+- "Restore hidden" clears `bs:deletedBuiltInIds`. No per-item restore (keeps UI simple).
+- Confirmation: small inline "Are you sure?" on click — no modal dialog needed.
 
-**Edit:**
-- `src/lib/game-types.ts` — add `AgeGroup`, extend setup payload type.
-- `src/components/SetupScreen.tsx` — mount the two new sections; pass new fields up.
-- `src/components/Game.tsx` — store `ageGroup` + `customScenarios`; combine with built-in scenarios for the round list.
+## 4. Apply deletions to gameplay
 
-**Enable:** Lovable Cloud (required for AI Gateway).
+In `Game.tsx`, the `allScenarios` memo already filters by age. Add a second filter: `!deletedBuiltInIds.includes(s.id)`. Pass `deletedBuiltInIds` through `SetupPayload`.
 
-No changes to RoundScreen / RevealScreen / EndScreen — custom scenarios reuse the same shape, so they render unchanged.
+## Files touched
 
-## Out of Scope
+- `src/data/scenarios.ts` — add stable `id` to every built-in
+- `src/lib/game-types.ts` — `id` required on `Scenario`; add `deletedBuiltInIds: string[]` to `SetupPayload`
+- `src/hooks/use-local-storage.ts` — new
+- `src/components/SetupScreen.tsx` — wire localStorage, render new library panel
+- `src/components/QuestionLibrary.tsx` — new, the unified list
+- `src/components/CustomQuestionEditor.tsx` — support edit mode (pre-fill from existing custom)
+- `src/components/Game.tsx` — accept and apply `deletedBuiltInIds`
 
-- Persisting custom questions across reloads (in-memory only, matches existing app).
-- Editing built-in scenarios.
-- Re-generating "why" for built-in scenarios per age group (built-in `why` text stays as authored; only custom questions use AI).
-- Translations / non-English output.
+## Out of scope
 
-## Open Question
-
-For built-in scenarios, the existing `why` text is one fixed sentence. Do you also want those rewritten by AI to match the selected age group, or keep built-ins fixed and only auto-generate for custom questions? **Default in this plan: built-ins stay fixed, AI only powers custom questions** (faster, no cost per round, predictable classroom content).
+- Cross-device sync (no account system).
+- Editing built-in scenarios' text/verdict (only delete).
+- Rewriting `src/data/scenarios.ts` from the browser.

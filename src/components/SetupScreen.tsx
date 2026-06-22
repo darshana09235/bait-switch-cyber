@@ -1,8 +1,10 @@
 import { useState } from "react";
 import type { GameMode, Player, CustomScenario, SetupPayload, AgeBucket } from "@/lib/game-types";
 import { DEFAULT_TEAM_NAMES } from "@/lib/game-types";
+import { useLocalStorage } from "@/hooks/use-local-storage";
 import { AgeGroupPicker } from "./AgeGroupPicker";
 import { CustomQuestionEditor } from "./CustomQuestionEditor";
+import { QuestionLibrary } from "./QuestionLibrary";
 
 type Props = {
   onStart: (payload: SetupPayload) => void;
@@ -13,8 +15,17 @@ export function SetupScreen({ onStart }: Props) {
   const [teamCount, setTeamCount] = useState(2);
   const [teamNames, setTeamNames] = useState<string[]>(DEFAULT_TEAM_NAMES);
   const [namesText, setNamesText] = useState("");
-  const [ageGroups, setAgeGroups] = useState<AgeBucket[]>(["8-10"]);
-  const [customScenarios, setCustomScenarios] = useState<CustomScenario[]>([]);
+
+  const [ageGroups, setAgeGroups] = useLocalStorage<AgeBucket[]>("bs:ageGroups", ["8-10"]);
+  const [customScenarios, setCustomScenarios] = useLocalStorage<CustomScenario[]>(
+    "bs:customScenarios",
+    []
+  );
+  const [deletedBuiltInIds, setDeletedBuiltInIds] = useLocalStorage<string[]>(
+    "bs:deletedBuiltInIds",
+    []
+  );
+  const [editing, setEditing] = useState<CustomScenario | null>(null);
 
   const individualNames = namesText
     .split(/[\n,]/)
@@ -44,7 +55,7 @@ export function SetupScreen({ onStart }: Props) {
         score: 0,
       }));
     }
-    onStart({ mode, players, ageGroups, customScenarios });
+    onStart({ mode, players, ageGroups, customScenarios, deletedBuiltInIds });
   };
 
   return (
@@ -162,6 +173,31 @@ export function SetupScreen({ onStart }: Props) {
           ageGroups={ageGroups}
           customScenarios={customScenarios}
           onChange={setCustomScenarios}
+          editing={editing}
+          onCancelEdit={() => setEditing(null)}
+        />
+      </div>
+
+      <div className="mt-6">
+        <QuestionLibrary
+          ageGroups={ageGroups}
+          customScenarios={customScenarios}
+          deletedBuiltInIds={deletedBuiltInIds}
+          onDeleteCustom={(id) =>
+            setCustomScenarios(customScenarios.filter((c) => c.id !== id))
+          }
+          onEditCustom={(s) => {
+            setEditing(s);
+            if (typeof window !== "undefined") {
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+          }}
+          onHideBuiltIn={(id) =>
+            setDeletedBuiltInIds(
+              deletedBuiltInIds.includes(id) ? deletedBuiltInIds : [...deletedBuiltInIds, id]
+            )
+          }
+          onRestoreAll={() => setDeletedBuiltInIds([])}
         />
       </div>
 
