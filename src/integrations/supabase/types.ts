@@ -14,7 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      custom_scenarios: {
+        Row: {
+          age_groups: string[]
+          created_at: string
+          device_id: string
+          id: string
+          message: string
+          sender: string
+          tricky: boolean
+          verdict: string
+          why: string
+        }
+        Insert: {
+          age_groups?: string[]
+          created_at?: string
+          device_id: string
+          id: string
+          message: string
+          sender?: string
+          tricky?: boolean
+          verdict: string
+          why: string
+        }
+        Update: {
+          age_groups?: string[]
+          created_at?: string
+          device_id?: string
+          id?: string
+          message?: string
+          sender?: string
+          tricky?: boolean
+          verdict?: string
+          why?: string
+        }
+        Relationships: []
+      }
+      hidden_builtins: {
+        Row: {
+          created_at: string
+          device_id: string
+          scenario_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          scenario_id: string
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          scenario_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
