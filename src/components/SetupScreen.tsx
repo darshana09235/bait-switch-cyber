@@ -1,7 +1,16 @@
 import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { GameMode, Player, CustomScenario, SetupPayload, AgeBucket } from "@/lib/game-types";
 import { DEFAULT_TEAM_NAMES } from "@/lib/game-types";
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import {
+  listCustomScenarios,
+  upsertCustomScenario,
+  deleteCustomScenario,
+  listHiddenBuiltIns,
+  hideBuiltIn,
+  restoreAllBuiltIns,
+} from "@/lib/scenarios-store";
 import { AgeGroupPicker } from "./AgeGroupPicker";
 import { CustomQuestionEditor } from "./CustomQuestionEditor";
 import { QuestionLibrary } from "./QuestionLibrary";
@@ -17,15 +26,44 @@ export function SetupScreen({ onStart }: Props) {
   const [namesText, setNamesText] = useState("");
 
   const [ageGroups, setAgeGroups] = useLocalStorage<AgeBucket[]>("bs:ageGroups", ["8-10"]);
-  const [customScenarios, setCustomScenarios] = useLocalStorage<CustomScenario[]>(
-    "bs:customScenarios",
-    []
-  );
-  const [deletedBuiltInIds, setDeletedBuiltInIds] = useLocalStorage<string[]>(
-    "bs:deletedBuiltInIds",
-    []
-  );
   const [editing, setEditing] = useState<CustomScenario | null>(null);
+
+  const qc = useQueryClient();
+
+  const customQuery = useQuery({
+    queryKey: ["customScenarios"],
+    queryFn: listCustomScenarios,
+  });
+  const hiddenQuery = useQuery({
+    queryKey: ["hiddenBuiltins"],
+    queryFn: listHiddenBuiltIns,
+  });
+
+  const customScenarios = customQuery.data ?? [];
+  const deletedBuiltInIds = hiddenQuery.data ?? [];
+
+  const upsertMutation = useMutation({
+    mutationFn: upsertCustomScenario,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["customScenarios"] }),
+  });
+  const deleteMutation = useMutation({
+    mutationFn: deleteCustomScenario,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["customScenarios"] }),
+  });
+  const hideMutation = useMutation({
+    mutationFn: hideBuiltIn,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["hiddenBuiltins"] }),
+  });
+  const restoreMutation = useMutation({
+    mutationFn: restoreAllBuiltIns,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["hiddenBuiltins"] }),
+  });
+
+  const saving =
+    upsertMutation.isPending ||
+    deleteMutation.isPending ||
+    hideMutation.isPending ||
+    restoreMutation.isPending;
 
   const individualNames = namesText
     .split(/[\n,]/)
@@ -56,6 +94,24 @@ export function SetupScreen({ onStart }: Props) {
       }));
     }
     onStart({ mode, players, ageGroups, customScenarios, deletedBuiltInIds });
+  };
+
+  // Adapter for the editor: receives the full next list; diff against current
+  // and turn into either an upsert or a delete.
+  const handleEditorChange = (next: CustomScenario[]) => {
+    const prevById = new Map(customScenarios.map((c) => [c.id, c]));
+    const nextById = new Map(next.map((c) => [c.id, c]));
+    // additions / updates
+    for (const [id, s] of nextById) {
+      const prev = prevById.get(id);
+      if (!prev || JSON.stringify(prev) !== JSON.stringify(s)) {
+        upsertMutation.mutate(s);
+      }
+    }
+    // removals
+    for (const id of prevById.keys()) {
+      if (!nextById.has(id)) deleteMutation.mutate(id);
+    }
   };
 
   return (
@@ -172,32 +228,36 @@ export function SetupScreen({ onStart }: Props) {
         <CustomQuestionEditor
           ageGroups={ageGroups}
           customScenarios={customScenarios}
-          onChange={setCustomScenarios}
+          onChange={handleEditorChange}
           editing={editing}
           onCancelEdit={() => setEditing(null)}
         />
       </div>
 
-      <div className="mt-6">
+      <div className="mt-3 text-center text-xs text-white/70 h-5">
+        {saving
+          ? "Saving…"
+          : customQuery.isLoading || hiddenQuery.isLoading
+            ? "Loading your questions…"
+            : customQuery.isError || hiddenQuery.isError
+              ? "⚠️ Couldn't reach the server — changes won't be saved."
+              : "✓ Your questions are saved to your device."}
+      </div>
+
+      <div className="mt-3">
         <QuestionLibrary
           ageGroups={ageGroups}
           customScenarios={customScenarios}
           deletedBuiltInIds={deletedBuiltInIds}
-          onDeleteCustom={(id) =>
-            setCustomScenarios(customScenarios.filter((c) => c.id !== id))
-          }
+          onDeleteCustom={(id) => deleteMutation.mutate(id)}
           onEditCustom={(s) => {
             setEditing(s);
             if (typeof window !== "undefined") {
               window.scrollTo({ top: 0, behavior: "smooth" });
             }
           }}
-          onHideBuiltIn={(id) =>
-            setDeletedBuiltInIds(
-              deletedBuiltInIds.includes(id) ? deletedBuiltInIds : [...deletedBuiltInIds, id]
-            )
-          }
-          onRestoreAll={() => setDeletedBuiltInIds([])}
+          onHideBuiltIn={(id) => hideMutation.mutate(id)}
+          onRestoreAll={() => restoreMutation.mutate()}
         />
       </div>
 
