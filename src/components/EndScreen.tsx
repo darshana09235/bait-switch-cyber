@@ -21,6 +21,29 @@ export function EndScreen({
   const winner = sorted[0];
   const medals = ["🥇", "🥈", "🥉"];
 
+  const topScore = mode === "class" ? classScore : winner?.score ?? 0;
+  const didWell = totalRounds > 0 && topScore / totalRounds >= 0.5;
+
+  useEffect(() => {
+    if (!didWell) return;
+    const fire = (opts: confetti.Options) =>
+      confetti({
+        particleCount: 80,
+        spread: 70,
+        startVelocity: 45,
+        ticks: 200,
+        scalar: 1.1,
+        ...opts,
+      });
+    fire({ origin: { x: 0.2, y: 0.7 }, angle: 60 });
+    fire({ origin: { x: 0.8, y: 0.7 }, angle: 120 });
+    const t = setTimeout(
+      () => fire({ origin: { x: 0.5, y: 0.6 }, particleCount: 120 }),
+      300,
+    );
+    return () => clearTimeout(t);
+  }, [didWell]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-4 py-8 backdrop-blur-sm animate-reveal">
       <div className="w-full max-w-lg rounded-[2rem] bg-gradient-to-br from-indigo-900 to-slate-900 p-8 text-white shadow-2xl ring-4 ring-sand/30">
