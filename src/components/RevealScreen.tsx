@@ -1,5 +1,8 @@
+import { useEffect } from "react";
 import type { GameMode, Player } from "@/lib/game-types";
 import type { Scenario } from "@/data/scenarios";
+import { playFakeBuzzer, playSafeDing } from "@/lib/sfx";
+
 
 type Props = {
   mode: GameMode;
@@ -25,6 +28,13 @@ export function RevealScreen({
   onNext,
 }: Props) {
   const isFake = scenario.verdict === "fake";
+
+  useEffect(() => {
+    if (isFake) playFakeBuzzer();
+    else playSafeDing();
+    // play once per reveal
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scenario.id]);
 
   return (
     <div
