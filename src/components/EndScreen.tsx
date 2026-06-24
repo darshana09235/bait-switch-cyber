@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import confetti from "canvas-confetti";
 import type { GameMode, Player } from "@/lib/game-types";
 
 type Props = {
