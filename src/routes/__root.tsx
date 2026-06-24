@@ -77,14 +77,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "phishing cyber game" },
+      { name: "description", content: "The Bait & Switch Arena is an interactive web app for kids' cyber safety workshops that teaches phishing and scam recognition through a live, facilitator-run ga" },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "phishing cyber game" },
+      { property: "og:description", content: "The Bait & Switch Arena is an interactive web app for kids' cyber safety workshops that teaches phishing and scam recognition through a live, facilitator-run ga" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "phishing cyber game" },
+      { name: "twitter:description", content: "The Bait & Switch Arena is an interactive web app for kids' cyber safety workshops that teaches phishing and scam recognition through a live, facilitator-run ga" },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/9e8e6545-7d3b-40b0-a362-a952c2b58042/id-preview-2edcd47f--e51ecf6b-ba7a-4113-846c-20bf87fee47d.lovable.app-1782317192315.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/9e8e6545-7d3b-40b0-a362-a952c2b58042/id-preview-2edcd47f--e51ecf6b-ba7a-4113-846c-20bf87fee47d.lovable.app-1782317192315.png" },
     ],
     links: [
       {
