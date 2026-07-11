@@ -19,8 +19,7 @@ Loveable
 React
 TypeScript
 Tailwind CSS
-🌐 Live Demo
-https://bait-switch-blaster.lovable.app
+
 
 📚 Future Improvements
 AI-generated phishing scenarios
